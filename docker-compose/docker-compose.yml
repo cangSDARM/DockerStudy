@@ -1,0 +1,75 @@
+#Version1:
+webapp: #服务名称
+  image: example/app #服务容器的配置信息
+  prots:
+    - "80:80"
+  volumes:
+    - "/data"
+
+#Version2:
+version: "2" #添加了版本信息
+services:  #所有服务需要放在services下面
+  webapp:
+    build: /path/build/dir #指定Dockerfile所在文件夹的路径. 相对yml或绝对
+    command: echo "hello world" #覆盖容器启动后的默认执行
+    cgroup_parent:  cgroup_1 #指定父cgroup组, 将继承资源限制
+    container_name: docker-web-container #指定容器名称(若指定则是服务容器个数为一), 默认"项目名_服务名_序号"
+    devices:  #指定设备映射
+      - "dev/ttyUSB:/dev/ttyUSB"
+    dockerfile: Dockerfile-Extention #指定额外的编译镜像的Dockerfile(不能和image同时使用)
+    image: "ubuntu:${VERSION}" #指定镜像, 接收运行环境中的环境变量
+    env_file: #从文件中获取环境变量
+      - ./command.env
+      - ./app.env
+    environment:  #设置环境变量, 可以是字典或数组(但不能如例子混用)
+      - RACK_ENV=development
+      SESSION_SECRET:
+    #网络相关: domainname, hostname, mac_address, dns, dns_search
+    expose: #暴露端口(需要-p)
+      - "3000"
+    prots: #暴露端口信息(不需要-p), "宿主:容器"
+      - "80:80"
+    net: "bridge" #设置网络模式
+    extends:  #基于其他模板文件扩展, 不会继承links和volumes_from中的容器和数据卷
+      file: common.yml
+      services: webapp
+    external_links: #链接到外部容器
+      - redis
+      - mysql
+    links:  #链接到其他服务的容器, "服务名称:别名"
+      - redis
+      - db:dba
+    extra_hosts: #指定hosts名映射
+      - "google:8.8.8.8"
+    labels: #为容器添加Docker元数据信息
+      - com.startupteam.description: "webapp"
+    #安全相关: cup_shares, cpuset, mem_limit, ipc, privileged
+    log_driver: "json-file" #指定日志驱动类型. json-file|syslog|none
+    log_opt:  #日志驱动的相关参数
+      syslog_address: "tcp://192.168.31.1"
+    pid: "host" #跟主机系统共享命名空间
+    security_opt: #指定容器模板标签的默认属性
+      - label:user:Allce
+      - label:role:Admin
+    ulimits:  #指定容器的ulimits限制值
+      nproc: 65535  #进程数
+      nofile: #文件句柄数
+        soft: 20000
+        hard: 40000
+    cap_add:  #指定容器的内核能力(capacity)分配
+      - ALL
+    cap_drop: #指定容器的内核能力(capacity)分配
+      - NET_ADMIN
+    read_only: true #以只读模式挂载容器的root文件系统
+    volumes:  #挂载数据卷
+      - /data:/data:ro
+    volumes_driver: vol #指定第三方数据卷驱动名
+    volumes_from: #从另一个地方挂载其数据卷
+      - service_name
+      - container_name
+    entrypoint: /bin/sh bash.sh #指定容器启动后的命令
+    user: nginx #指定运行应用的用户名
+    working_dir: /worker  #指定工作目录
+    restart: always #指定容器退出后的策略
+    stdin_open: true #打开标准输入
+    tty: true #打开伪终端
